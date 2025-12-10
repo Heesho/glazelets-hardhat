@@ -9,8 +9,9 @@ const convert = (amount, decimals) => ethers.utils.parseUnits(amount, decimals);
 // Existing Donut contract address
 const DONUT_ADDRESS = "0xae4a37d554c6d6f3e398546d8566b25052e0169c";
 
-// Mint price in DONUT tokens (1 DONUT)
-const MINT_PRICE = convert("1", 18);
+// Mint price in DONUT tokens
+const MINT_PRICE_AMOUNT = "1";
+const MINT_PRICE = convert(MINT_PRICE_AMOUNT, 18);
 
 /*===========================  END SETTINGS  ========================*/
 /*===================================================================*/
@@ -98,6 +99,14 @@ async function main() {
   //===================================================================
   // Post-Deploy Configuration
   //===================================================================
+
+  // await glazelets.setMintPrice(MINT_PRICE);
+  // console.log("Mint price set to:", MINT_PRICE_AMOUNT, "DONUT");
+
+  // console.log(
+  //   "Mint price:",
+  //   ethers.utils.formatEther(await glazelets.mintPrice())
+  // );
 
   // await glazelets.setBaseURI(
   //   "https://ipfs.io/ipfs/bafybeig2mfj2tfeopfictfdldemwuuj7kjjkbmuqnf6bus4pzuhmkz7nfm/"
