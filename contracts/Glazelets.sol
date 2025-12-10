@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Counters.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "./Donut.sol";
 
 /**
  * @title Glazelets
@@ -23,6 +24,7 @@ contract Glazelets is ERC721, Ownable, ReentrancyGuard {
     Counters.Counter private _tokenIdCounter;
     uint256 public mintPrice;
     string private _baseTokenURI; // The root URL for your metadata (e.g., ipfs://<CID>/)
+    Donut public immutable donut; // Donut token used for payment
     
     // Tracks how many tokens each wallet has minted
     mapping(address => uint256) public mintsPerWallet; 
@@ -33,19 +35,20 @@ contract Glazelets is ERC721, Ownable, ReentrancyGuard {
     // --- EVENTS ---
     event Glazelets__MintPriceChanged(uint256 oldPrice, uint256 newPrice);
     event Glazelets__BaseURIChanged(string newBaseURI);
-    event Glazelets__Withdrawal(address indexed to, uint256 amount);
     event Glazelets__Minted(uint256 indexed tokenId, address indexed to, string origin);
 
     // --- CONSTRUCTOR ---
 
     /**
-     * @dev Sets the collection name, symbol, and initial mint price.
-     * @param _initialPrice The initial price in Wei for a single Glazelet.
+     * @dev Sets the collection name, symbol, initial mint price, and Donut token address.
+     * @param _initialPrice The initial price in Donut tokens for a single Glazelet.
+     * @param _donut The address of the Donut token contract.
      */
-    constructor(uint256 _initialPrice)
-        ERC721("Glazelets", "GLZE")
+    constructor(uint256 _initialPrice, address _donut)
+        ERC721("CumDaddiesTest", "CDT")
     {
         mintPrice = _initialPrice;
+        donut = Donut(_donut);
     }
 
     // --- OWNER-ONLY FUNCTIONS (Access Control) ---
@@ -69,38 +72,35 @@ contract Glazelets is ERC721, Ownable, ReentrancyGuard {
         emit Glazelets__BaseURIChanged(baseURI);
     }
 
-    /**
-     * @dev Allows the contract owner to withdraw accumulated ETH.
-     */
-    function withdraw() public onlyOwner {
-        uint256 amount = address(this).balance;
-        (bool success, ) = payable(owner()).call{value: amount}("");
-        require(success, "Withdrawal failed");
-        emit Glazelets__Withdrawal(owner(), amount);
-    }
 
     // --- PUBLIC MINT FUNCTION ---
 
     /**
      * @dev Public mint function. Handles all checks and assigns the origin.
+     * User must approve this contract to spend their Donut tokens first.
+     * The Donut tokens are burned as payment.
      * @param _origin A string representing the Glazelet's origin.
      */
-    function mint(string memory _origin) public payable nonReentrant {
+    function mint(string memory _origin) public nonReentrant {
         // 1. Check if the collection is sold out
         require(_tokenIdCounter.current() < MAX_SUPPLY, "GLZE: Collection sold out");
 
         // 2. Check the per-wallet limit
         require(mintsPerWallet[msg.sender] < MAX_MINT_PER_WALLET, "GLZE: Wallet limit reached (4)");
 
-        // 3. Check the payment amount
-        require(msg.value >= mintPrice, "GLZE: Insufficient ETH sent");
+        // 3. Check user has enough Donut tokens
+        require(donut.balanceOf(msg.sender) >= mintPrice, "GLZE: Insufficient DONUT balance");
+
+        // 4. Transfer Donut tokens from user to this contract, then burn them
+        require(donut.transferFrom(msg.sender, address(this), mintPrice), "GLZE: DONUT transfer failed");
+        donut.burn(mintPrice);
 
         // Mint the token
         _tokenIdCounter.increment();
         uint256 newTokenId = _tokenIdCounter.current();
 
         _safeMint(msg.sender, newTokenId);
-        
+
         // Assign the custom "origin" to the new token
         tokenIdToOrigin[newTokenId] = _origin;
 
@@ -108,12 +108,6 @@ contract Glazelets is ERC721, Ownable, ReentrancyGuard {
         mintsPerWallet[msg.sender]++;
 
         emit Glazelets__Minted(newTokenId, msg.sender, _origin);
-
-        // 4. Refund any excess ETH sent
-        if (msg.value > mintPrice) {
-            (bool success, ) = payable(msg.sender).call{value: msg.value - mintPrice}("");
-            require(success, "GLZE: Refund failed");
-        }
     }
 
     // --- OVERRIDES AND UTILITIES ---
@@ -139,8 +133,8 @@ contract Glazelets is ERC721, Ownable, ReentrancyGuard {
         
         string memory base = _baseURI();
         
-        // Concatenate the parts: baseURI + tokenId (converted to string) + ".json"
-        return string(abi.encodePacked(base, tokenId.toString(), ".json"));
+        // Concatenate the parts: baseURI + tokenId (converted to string)
+        return string(abi.encodePacked(base, tokenId.toString()));
     }
     
     /**
