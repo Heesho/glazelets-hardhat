@@ -108,7 +108,9 @@ async function main() {
   //   ethers.utils.formatEther(await glazelets.mintPrice())
   // );
 
-  // await glazelets.setBaseURI("https://ipfs.io/test");
+  // await glazelets.setBaseURI(
+  //   "https://ipfs.io/ipfs/bafybeig2mfj2tfeopfictfdldemwuuj7kjjkbmuqnf6bus4pzuhmkz7nfm/"
+  // );
   // console.log("Base URI set");
 }
 
