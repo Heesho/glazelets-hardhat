@@ -38,8 +38,8 @@ describe("Glazelets", function () {
   // ============================================
   describe("Deployment", function () {
     it("Should set the correct name and symbol", async function () {
-      expect(await glazelets.name()).to.equal("Glazelets");
-      expect(await glazelets.symbol()).to.equal("GLZE");
+      expect(await glazelets.name()).to.equal("CumDaddiesTest");
+      expect(await glazelets.symbol()).to.equal("CDT");
     });
 
     it("Should set the correct owner", async function () {
@@ -120,9 +120,9 @@ describe("Glazelets", function () {
       await glazelets.connect(user0).mint("origin1");
 
       expect(await glazelets.totalSupply()).to.equal(1);
-      expect(await glazelets.ownerOf(1)).to.equal(user0.address);
+      expect(await glazelets.ownerOf(0)).to.equal(user0.address);
       expect(await glazelets.mintsPerWallet(user0.address)).to.equal(1);
-      expect(await glazelets.tokenIdToOrigin(1)).to.equal("origin1");
+      expect(await glazelets.tokenIdToOrigin(0)).to.equal("origin1");
 
       // Check Donut was deducted from user
       expect(await donut.balanceOf(user0.address)).to.equal(initialDonutBalance.sub(MINT_PRICE));
@@ -146,9 +146,9 @@ describe("Glazelets", function () {
       await glazelets.connect(user2).mint("user2-origin");
 
       expect(await glazelets.totalSupply()).to.equal(3);
-      expect(await glazelets.ownerOf(1)).to.equal(user0.address);
-      expect(await glazelets.ownerOf(2)).to.equal(user1.address);
-      expect(await glazelets.ownerOf(3)).to.equal(user2.address);
+      expect(await glazelets.ownerOf(0)).to.equal(user0.address);
+      expect(await glazelets.ownerOf(1)).to.equal(user1.address);
+      expect(await glazelets.ownerOf(2)).to.equal(user2.address);
     });
 
     it("Should burn exact amount of Donut tokens", async function () {
@@ -166,19 +166,19 @@ describe("Glazelets", function () {
       await glazelets.connect(user0).mint("Water");
       await glazelets.connect(user0).mint("Earth");
 
-      expect(await glazelets.tokenIdToOrigin(1)).to.equal("Fire");
-      expect(await glazelets.tokenIdToOrigin(2)).to.equal("Water");
-      expect(await glazelets.tokenIdToOrigin(3)).to.equal("Earth");
+      expect(await glazelets.tokenIdToOrigin(0)).to.equal("Fire");
+      expect(await glazelets.tokenIdToOrigin(1)).to.equal("Water");
+      expect(await glazelets.tokenIdToOrigin(2)).to.equal("Earth");
     });
 
-    it("Should assign sequential token IDs", async function () {
+    it("Should assign sequential token IDs starting from 0", async function () {
       await glazelets.connect(user0).mint("origin1");
       await glazelets.connect(user1).mint("origin2");
       await glazelets.connect(user2).mint("origin3");
 
-      expect(await glazelets.ownerOf(1)).to.equal(user0.address);
-      expect(await glazelets.ownerOf(2)).to.equal(user1.address);
-      expect(await glazelets.ownerOf(3)).to.equal(user2.address);
+      expect(await glazelets.ownerOf(0)).to.equal(user0.address);
+      expect(await glazelets.ownerOf(1)).to.equal(user1.address);
+      expect(await glazelets.ownerOf(2)).to.equal(user2.address);
     });
 
     it("Should not accumulate Donut in contract (burned immediately)", async function () {
@@ -255,7 +255,7 @@ describe("Glazelets", function () {
         // Should fail with insufficient balance at new price if user only has enough for old price
         // But our users have 10,000 DONUT so they can still mint
         await glazelets.connect(user0).mint("origin1");
-        expect(await glazelets.ownerOf(1)).to.equal(user0.address);
+        expect(await glazelets.ownerOf(0)).to.equal(user0.address);
       });
 
       it("Should revert when non-owner tries to set mint price", async function () {
@@ -273,7 +273,7 @@ describe("Glazelets", function () {
         // Should be able to mint for free (no Donut burned)
         const initialSupply = await donut.totalSupply();
         await glazelets.connect(user0).mint("origin1");
-        expect(await glazelets.ownerOf(1)).to.equal(user0.address);
+        expect(await glazelets.ownerOf(0)).to.equal(user0.address);
         expect(await donut.totalSupply()).to.equal(initialSupply); // No tokens burned
       });
     });
@@ -285,7 +285,7 @@ describe("Glazelets", function () {
 
         // Mint a token to test the URI
         await glazelets.connect(user0).mint("origin1");
-        expect(await glazelets.tokenURI(1)).to.equal("ipfs://QmTestCID/1.json");
+        expect(await glazelets.tokenURI(0)).to.equal("ipfs://QmTestCID/0");
       });
 
       it("Should revert when non-owner tries to set base URI", async function () {
@@ -298,10 +298,10 @@ describe("Glazelets", function () {
         await glazelets.connect(user0).mint("origin1");
 
         await glazelets.connect(owner).setBaseURI("ipfs://QmFirstCID/");
-        expect(await glazelets.tokenURI(1)).to.equal("ipfs://QmFirstCID/1.json");
+        expect(await glazelets.tokenURI(0)).to.equal("ipfs://QmFirstCID/0");
 
         await glazelets.connect(owner).setBaseURI("ipfs://QmSecondCID/");
-        expect(await glazelets.tokenURI(1)).to.equal("ipfs://QmSecondCID/1.json");
+        expect(await glazelets.tokenURI(0)).to.equal("ipfs://QmSecondCID/0");
       });
     });
   });
@@ -316,14 +316,14 @@ describe("Glazelets", function () {
 
     it("Should return empty base URI when not set", async function () {
       await glazelets.connect(user0).mint("origin1");
-      expect(await glazelets.tokenURI(1)).to.equal("1.json");
+      expect(await glazelets.tokenURI(0)).to.equal("0");
     });
 
     it("Should return correct token URI with base URI set", async function () {
       await glazelets.connect(owner).setBaseURI("https://api.glazelets.com/metadata/");
       await glazelets.connect(user0).mint("origin1");
 
-      expect(await glazelets.tokenURI(1)).to.equal("https://api.glazelets.com/metadata/1.json");
+      expect(await glazelets.tokenURI(0)).to.equal("https://api.glazelets.com/metadata/0");
     });
 
     it("Should return correct token URI for multiple tokens", async function () {
@@ -333,9 +333,9 @@ describe("Glazelets", function () {
       await glazelets.connect(user0).mint("origin2");
       await glazelets.connect(user0).mint("origin3");
 
-      expect(await glazelets.tokenURI(1)).to.equal("ipfs://QmTestCID/1.json");
-      expect(await glazelets.tokenURI(2)).to.equal("ipfs://QmTestCID/2.json");
-      expect(await glazelets.tokenURI(3)).to.equal("ipfs://QmTestCID/3.json");
+      expect(await glazelets.tokenURI(0)).to.equal("ipfs://QmTestCID/0");
+      expect(await glazelets.tokenURI(1)).to.equal("ipfs://QmTestCID/1");
+      expect(await glazelets.tokenURI(2)).to.equal("ipfs://QmTestCID/2");
     });
 
     it("Should revert when querying URI for nonexistent token", async function () {
@@ -344,10 +344,10 @@ describe("Glazelets", function () {
       ).to.be.revertedWith("ERC721Metadata: URI query for nonexistent token");
     });
 
-    it("Should revert when querying URI for token ID 0", async function () {
-      await expect(
-        glazelets.tokenURI(0)
-      ).to.be.revertedWith("ERC721Metadata: URI query for nonexistent token");
+    it("Should return valid URI for token ID 0 after it is minted", async function () {
+      await glazelets.connect(owner).setBaseURI("ipfs://QmTestCID/");
+      await glazelets.connect(user0).mint("origin0");
+      expect(await glazelets.tokenURI(0)).to.equal("ipfs://QmTestCID/0");
     });
   });
 
@@ -432,19 +432,19 @@ describe("Glazelets", function () {
     });
 
     it("Should allow token transfers", async function () {
-      await glazelets.connect(user0).transferFrom(user0.address, user1.address, 1);
+      await glazelets.connect(user0).transferFrom(user0.address, user1.address, 0);
 
-      expect(await glazelets.ownerOf(1)).to.equal(user1.address);
+      expect(await glazelets.ownerOf(0)).to.equal(user1.address);
       expect(await glazelets.balanceOf(user0.address)).to.equal(0);
       expect(await glazelets.balanceOf(user1.address)).to.equal(1);
     });
 
     it("Should allow approval and transferFrom", async function () {
-      await glazelets.connect(user0).approve(user1.address, 1);
-      expect(await glazelets.getApproved(1)).to.equal(user1.address);
+      await glazelets.connect(user0).approve(user1.address, 0);
+      expect(await glazelets.getApproved(0)).to.equal(user1.address);
 
-      await glazelets.connect(user1).transferFrom(user0.address, user2.address, 1);
-      expect(await glazelets.ownerOf(1)).to.equal(user2.address);
+      await glazelets.connect(user1).transferFrom(user0.address, user2.address, 0);
+      expect(await glazelets.ownerOf(0)).to.equal(user2.address);
     });
 
     it("Should allow setApprovalForAll", async function () {
@@ -454,15 +454,15 @@ describe("Glazelets", function () {
       await glazelets.connect(user0).mint("origin2");
 
       // User1 can now transfer any of user0's tokens
+      await glazelets.connect(user1).transferFrom(user0.address, user2.address, 0);
       await glazelets.connect(user1).transferFrom(user0.address, user2.address, 1);
-      await glazelets.connect(user1).transferFrom(user0.address, user2.address, 2);
 
       expect(await glazelets.balanceOf(user2.address)).to.equal(2);
     });
 
     it("Should revert transfer from non-owner/approved", async function () {
       await expect(
-        glazelets.connect(user1).transferFrom(user0.address, user2.address, 1)
+        glazelets.connect(user1).transferFrom(user0.address, user2.address, 0)
       ).to.be.reverted;
     });
 
@@ -490,41 +490,41 @@ describe("Glazelets", function () {
 
     it("Should handle empty origin string", async function () {
       await glazelets.connect(user0).mint("");
-      expect(await glazelets.tokenIdToOrigin(1)).to.equal("");
+      expect(await glazelets.tokenIdToOrigin(0)).to.equal("");
     });
 
     it("Should handle very long origin string", async function () {
       const longOrigin = "A".repeat(1000);
       await glazelets.connect(user0).mint(longOrigin);
-      expect(await glazelets.tokenIdToOrigin(1)).to.equal(longOrigin);
+      expect(await glazelets.tokenIdToOrigin(0)).to.equal(longOrigin);
     });
 
     it("Should handle special characters in origin string", async function () {
       const specialOrigin = "🔥🌊🌍⚡";
       await glazelets.connect(user0).mint(specialOrigin);
-      expect(await glazelets.tokenIdToOrigin(1)).to.equal(specialOrigin);
+      expect(await glazelets.tokenIdToOrigin(0)).to.equal(specialOrigin);
     });
 
     it("Should preserve origin after token transfer", async function () {
       await glazelets.connect(user0).mint("UniqueOrigin");
-      await glazelets.connect(user0).transferFrom(user0.address, user1.address, 1);
+      await glazelets.connect(user0).transferFrom(user0.address, user1.address, 0);
 
       // Origin should still be the same
-      expect(await glazelets.tokenIdToOrigin(1)).to.equal("UniqueOrigin");
+      expect(await glazelets.tokenIdToOrigin(0)).to.equal("UniqueOrigin");
     });
 
     it("Mints per wallet should not change after transfer", async function () {
       await glazelets.connect(user0).mint("origin1");
       expect(await glazelets.mintsPerWallet(user0.address)).to.equal(1);
 
-      await glazelets.connect(user0).transferFrom(user0.address, user1.address, 1);
+      await glazelets.connect(user0).transferFrom(user0.address, user1.address, 0);
 
       // Mints per wallet should stay the same
       expect(await glazelets.mintsPerWallet(user0.address)).to.equal(1);
       expect(await glazelets.mintsPerWallet(user1.address)).to.equal(0);
 
       // But user1 received the token
-      expect(await glazelets.ownerOf(1)).to.equal(user1.address);
+      expect(await glazelets.ownerOf(0)).to.equal(user1.address);
     });
 
     it("Should allow full lifecycle: mint, transfer, mint more", async function () {
@@ -533,7 +533,7 @@ describe("Glazelets", function () {
       expect(await glazelets.totalSupply()).to.equal(1);
 
       // User0 transfers to User1
-      await glazelets.connect(user0).transferFrom(user0.address, user1.address, 1);
+      await glazelets.connect(user0).transferFrom(user0.address, user1.address, 0);
 
       // User0 can still mint more
       await glazelets.connect(user0).mint("origin2");

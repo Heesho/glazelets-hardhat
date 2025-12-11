@@ -25,7 +25,7 @@ let glazelets;
 async function getContracts() {
   glazelets = await ethers.getContractAt(
     "contracts/Glazelets.sol:Glazelets",
-    "0xef5C67d9353fD3411e6e6b358A3dE162c2ABE0b3" // UPDATE WITH DEPLOYED ADDRESS
+    "0xea5c38aB557f0b7d1E0d96f3befB6c8C74148395" // UPDATE WITH DEPLOYED ADDRESS
   );
   console.log("Contracts Retrieved");
 }
@@ -108,9 +108,7 @@ async function main() {
   //   ethers.utils.formatEther(await glazelets.mintPrice())
   // );
 
-  // await glazelets.setBaseURI(
-  //   "https://ipfs.io/ipfs/bafybeig2mfj2tfeopfictfdldemwuuj7kjjkbmuqnf6bus4pzuhmkz7nfm/"
-  // );
+  // await glazelets.setBaseURI("https://ipfs.io/test");
   // console.log("Base URI set");
 }
 

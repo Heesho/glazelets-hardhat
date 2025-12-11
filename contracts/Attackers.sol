@@ -1,47 +1,56 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 interface IGlazelets {
-    function mint(string memory _origin) external payable;
+    function mint(string memory _origin) external;
     function mintPrice() external view returns (uint256);
     function mintsPerWallet(address) external view returns (uint256);
     function MAX_MINT_PER_WALLET() external view returns (uint256);
     function balanceOf(address owner) external view returns (uint256);
+    function donut() external view returns (address);
+}
+
+interface IERC721 {
+    function safeTransferFrom(address from, address to, uint256 tokenId) external;
+    function totalSupply() external view returns (uint256);
 }
 
 /**
  * @title ReentrancyAttacker
- * @dev Exploits the reentrancy vulnerability in Glazelets.mint()
+ * @dev Attempts to exploit reentrancy in Glazelets.mint() via onERC721Received
  *
- * The attack works because:
- * 1. mint() sends refund via call() which triggers receive()
- * 2. State (mintsPerWallet) is updated BEFORE the refund
- * 3. But we can re-enter during refund and mint again
+ * The attack attempts:
+ * 1. _safeMint triggers onERC721Received on this contract
+ * 2. We try to re-enter mint() before state is fully updated
  *
- * Wait - actually looking more carefully, mintsPerWallet IS updated
- * before the refund. Let me check the actual vulnerability...
- *
- * The issue is: _safeMint can trigger onERC721Received on the recipient
- * BEFORE mintsPerWallet is incremented!
+ * This should fail due to ReentrancyGuard
  */
 contract ReentrancyAttacker {
     IGlazelets public glazelets;
+    IERC20 public donut;
     uint256 public attackCount;
     uint256 public maxAttacks;
 
     constructor(address _glazelets) {
         glazelets = IGlazelets(_glazelets);
+        donut = IERC20(glazelets.donut());
         maxAttacks = 10; // Try to mint 10 tokens
     }
 
-    function attack() external payable {
+    function attack() external {
         attackCount = 0;
         uint256 price = glazelets.mintPrice();
-        // Send extra to trigger refund
-        glazelets.mint{value: price * 2}("attack");
+
+        // Approve Glazelets to spend our Donut tokens
+        donut.approve(address(glazelets), type(uint256).max);
+
+        // Start the attack
+        glazelets.mint("attack");
     }
 
-    // This is called by _safeMint -> BEFORE mintsPerWallet is incremented!
+    // This is called by _safeMint
     function onERC721Received(
         address,
         address,
@@ -50,13 +59,12 @@ contract ReentrancyAttacker {
     ) external returns (bytes4) {
         attackCount++;
 
-        // Check if we can re-enter
-        // The vulnerability: mintsPerWallet[this] hasn't been incremented yet!
+        // Try to re-enter
         if (attackCount < maxAttacks) {
             uint256 price = glazelets.mintPrice();
-            if (address(this).balance >= price * 2) {
-                // Re-enter the mint function
-                glazelets.mint{value: price * 2}("reentrant-attack");
+            if (donut.balanceOf(address(this)) >= price) {
+                // Attempt to re-enter the mint function
+                glazelets.mint("reentrant-attack");
             }
         }
 
@@ -67,61 +75,32 @@ contract ReentrancyAttacker {
 }
 
 /**
- * @title RefundRejecter
- * @dev Contract that cannot receive ETH refunds, causing mint to fail
- */
-contract RefundRejecter {
-    IGlazelets public glazelets;
-    bool public rejectRefunds = true;
-
-    constructor(address _glazelets) {
-        glazelets = IGlazelets(_glazelets);
-    }
-
-    function mintWithOverpayment() external payable {
-        // Send more than needed, refund will fail because receive() reverts
-        glazelets.mint{value: msg.value}("will-fail");
-    }
-
-    function onERC721Received(
-        address,
-        address,
-        uint256,
-        bytes calldata
-    ) external pure returns (bytes4) {
-        return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
-    }
-
-    // Receive ETH but revert to simulate a contract that can't accept refunds
-    receive() external payable {
-        if (rejectRefunds) {
-            revert("I reject ETH");
-        }
-    }
-}
-
-interface IERC721 {
-    function safeTransferFrom(address from, address to, uint256 tokenId) external;
-    function totalSupply() external view returns (uint256);
-}
-
-/**
  * @title MintProxy
- * @dev Used to bypass per-wallet mint limits
+ * @dev Used to bypass per-wallet mint limits by deploying multiple proxy contracts
  */
 contract MintProxy {
     IGlazelets public glazelets;
+    IERC20 public donut;
     uint256 public lastTokenId;
 
     constructor(address _glazelets) {
         glazelets = IGlazelets(_glazelets);
+        donut = IERC20(glazelets.donut());
     }
 
-    function mintFor(address recipient, string memory origin) external payable {
-        // Mint to this contract first
-        glazelets.mint{value: msg.value}(origin);
+    function mintFor(address recipient, string memory origin) external {
+        uint256 price = glazelets.mintPrice();
 
-        // Transfer to the actual recipient
+        // Transfer Donut from caller to this contract
+        donut.transferFrom(msg.sender, address(this), price);
+
+        // Approve Glazelets to spend Donut
+        donut.approve(address(glazelets), price);
+
+        // Mint to this contract first
+        glazelets.mint(origin);
+
+        // Transfer NFT to the actual recipient
         IERC721(address(glazelets)).safeTransferFrom(address(this), recipient, lastTokenId);
     }
 

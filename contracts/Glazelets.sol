@@ -95,9 +95,9 @@ contract Glazelets is ERC721, Ownable, ReentrancyGuard {
         require(donut.transferFrom(msg.sender, address(this), mintPrice), "GLZE: DONUT transfer failed");
         donut.burn(mintPrice);
 
-        // Mint the token
-        _tokenIdCounter.increment();
+        // Mint the token (token IDs start at 0)
         uint256 newTokenId = _tokenIdCounter.current();
+        _tokenIdCounter.increment();
 
         _safeMint(msg.sender, newTokenId);
 
